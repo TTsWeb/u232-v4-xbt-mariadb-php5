@@ -39,7 +39,7 @@ case $codename in
         software='software-properties-common'
         repository='deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/ubuntu $codename main'
         ;;
-    "precise" || "lucid")
+    "precise" | "lucid")
         software='python-software-properties'
         repository='deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/ubuntu $codename main'
         ;;
