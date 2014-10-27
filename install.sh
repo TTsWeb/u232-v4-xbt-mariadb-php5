@@ -46,6 +46,7 @@ case $codename in
     "saucy")
         software='software-properties-common'
         repository='deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.0/ubuntu $codename main'
+        ;;
     *)
         echo `tput setaf 1``tput bold`"This OS is not yet supported! (EXITING)"`tput sgr0`
         echo
