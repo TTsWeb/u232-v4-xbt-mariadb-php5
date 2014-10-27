@@ -13,7 +13,7 @@ blank=''
 announce='http:\/\/'
 codename=$(lsb_release -a | grep Codename | awk '{ printf $2 }')
 function randomString {
-		local myStrLength=8;
+		local myStrLength=16;
         local mySeedNumber=$$`date +%N`;
         local myRandomString=$( echo $mySeedNumber | md5sum | md5sum );
         myRandomResult="${myRandomString:2:myStrLength}"
@@ -59,6 +59,8 @@ add-apt-repository "$repository"
 apt-get update
 apt-get install mariadb-server libmariadbclient-dev apache2 memcached libpcre3 libpcre3-dev cmake g++ libboost-date-time-dev libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev make subversion zlib1g-dev unzip libssl-dev php5 libapache2-mod-php5 php5-mysql php5-curl php5-gd php5-idn php-pear php5-imagick php5-imap php5-mcrypt php5-memcache php5-mhash php5-ming php5-ps php5-pspell php5-recode php5-snmp php5-sqlite php5-tidy php5-xmlrpc php5-xsl php5-json php5-cgi php5-dev phpmyadmin
 mysql_secure_installation
+cd /etc/apache2/sites-enabled
+sed -i 's/\/var\/www\/html/\/var\/www/' 000-default.conf
 $STARTAPACHE
 cd ~
 echo 'Please enter your root password for MYSQL when asked'
@@ -133,7 +135,6 @@ sed -i 's/mysql_user=/mysql_user='$user'/' /root/xbt/Tracker/xbt_tracker.conf
 sed -i 's/mysql_password=/mysql_password='$pass'/' /root/xbt/Tracker/xbt_tracker.conf
 sed -i 's/mysql_database=/mysql_database='$db'/' /root/xbt/Tracker/xbt_tracker.conf
 sed -i 's/mysql_host=/mysql_host'$dbhost'/' /root/xbt/Tracker/xbt_tracker.conf
-nano /root/xbt/Tracker/xbt_tracker.conf
 cd /root/xbt/Tracker
 ./xbt_tracker
 cd /root/xbt/Tracker/ 
@@ -225,6 +226,3 @@ else
                 fi
 
 fi
-cd /etc/apache2/sites-enabled
-nano 000-default.conf
-$STARTAPACHE
