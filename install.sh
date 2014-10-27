@@ -100,6 +100,7 @@ sed -i 's/#mysql_db/'$db'/' /var/www/include/ann_config.php
 sed -i 's/#mysql_host/'$dbhost'/' /var/www/include/ann_config.php
 sed -i 's/#baseurl/'$baseurl'/' /var/www/include/ann_config.php
 mysql -u $user -p$pass $db < /var/www/install/extra/install.xbt.sql
+mv /var/www/install /var/www/.install
 
 cd ~
 svn co http://xbt.googlecode.com/svn/trunk/xbt/misc xbt/misc
