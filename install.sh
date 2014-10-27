@@ -37,15 +37,15 @@ updatedb
 case $codename in
     "trusty")
         software='software-properties-common'
-        repository='deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/ubuntu $codename main'
+        repository="deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/ubuntu $codename main"
         ;;
     "precise" | "lucid")
         software='python-software-properties'
-        repository='deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/ubuntu $codename main'
+        repository="deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/ubuntu $codename main"
         ;;
     "saucy")
         software='software-properties-common'
-        repository='deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.0/ubuntu $codename main'
+        repository="deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.0/ubuntu $codename main"
         ;;
     *)
         echo `tput setaf 1``tput bold`"This OS is not yet supported! (EXITING)"`tput sgr0`
@@ -55,7 +55,7 @@ case $codename in
 esac
 apt-get install $software
 apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
-add-apt-repository $repository
+add-apt-repository "$repository"
 apt-get update
 apt-get install mariadb-server libmariadbclient-dev apache2 memcached libpcre3 libpcre3-dev cmake g++ libboost-date-time-dev libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev make subversion zlib1g-dev unzip libssl-dev php5 libapache2-mod-php5 php5-mysql php5-curl php5-gd php5-idn php-pear php5-imagick php5-imap php5-mcrypt php5-memcache php5-mhash php5-ming php5-ps php5-pspell php5-recode php5-snmp php5-sqlite php5-tidy php5-xmlrpc php5-xsl php5-json php5-cgi php5-dev phpmyadmin
 mysql_secure_installation
