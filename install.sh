@@ -53,7 +53,6 @@ case $codename in
         exit 1
         ;;
 esac
-done
 apt-get install $software
 apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
 add-apt-repository $repository
