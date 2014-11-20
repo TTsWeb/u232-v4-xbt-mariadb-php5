@@ -13,7 +13,7 @@ blank=''
 announce='http:\/\/'
 codename=$(lsb_release -a | grep Codename | awk '{ printf $2 }')
 function randomString {
-		local myStrLength=16;
+        local myStrLength=16;
         local mySeedNumber=$$`date +%N`;
         local myRandomString=$( echo $mySeedNumber | md5sum | md5sum );
         myRandomResult="${myRandomString:2:myStrLength}"
@@ -31,8 +31,9 @@ read name
 echo -n "Enter the site's email: "
 read email
 announce=$announce$baseurl
-apt-get update
-apt-get upgrade
+export DEBIAN_FRONTEND=noninteractive
+apt-get -y update
+apt-get -y upgrade
 updatedb
 case $codename in
     "trusty")
@@ -42,6 +43,10 @@ case $codename in
     "precise" | "lucid")
         software='python-software-properties'
         repository="deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/ubuntu $codename main"
+        ;;
+    "wheezy")
+        software='python-software-properties'
+        repository="deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian $codename main"
         ;;
     "saucy")
         software='software-properties-common'
@@ -53,14 +58,14 @@ case $codename in
         exit 1
         ;;
 esac
-apt-get install $software
+apt-get -y install $software
 apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
 add-apt-repository "$repository"
-apt-get update
-apt-get install mariadb-server libmariadbclient-dev apache2 memcached libpcre3 libpcre3-dev cmake g++ libboost-date-time-dev libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev make subversion zlib1g-dev unzip libssl-dev php5 libapache2-mod-php5 php5-mysql php5-curl php5-gd php5-idn php-pear php5-imagick php5-imap php5-mcrypt php5-memcache php5-mhash php5-ming php5-ps php5-pspell php5-recode php5-snmp php5-sqlite php5-tidy php5-xmlrpc php5-xsl php5-json php5-cgi php5-dev phpmyadmin
+apt-get -y update
+apt-get -y install mariadb-server libmariadbclient-dev apache2 memcached libpcre3 libpcre3-dev cmake g++ libboost-date-time-dev libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev make subversion zlib1g-dev unzip libssl-dev php5 libapache2-mod-php5 php5-mysql php5-curl php5-gd php5-idn php-pear php5-imagick php5-imap php5-mcrypt php5-memcache php5-mhash php5-ming php5-ps php5-pspell php5-recode php5-snmp php5-sqlite php5-tidy php5-xmlrpc php5-xsl php5-json php5-cgi php5-dev phpmyadmin
 mysql_secure_installation
 cd /etc/apache2/sites-enabled
-sed -i 's/\/var\/www\/html/\/var\/www/' 000-default.conf
+sed -i 's/\/var\/www\/html/\/var\/www/' 000-default*
 $STARTAPACHE
 cd ~
 echo 'Please enter your root password for MYSQL when asked'
@@ -72,9 +77,9 @@ rm blah.sql
 wget https://github.com/Bigjoos/U-232-V4/archive/master.tar.gz
 tar xfz master.tar.gz
 cd U-232-V4-master
-tar -zxf pic.tar.gz
-tar -zxf GeoIP.tar.gz
-tar -zxf javairc.tar.gz
+tar xfz pic.tar.gz
+tar xfz GeoIP.tar.gz
+tar xfz javairc.tar.gz
 tar xfz Log_Viewer.tar.gz
 cd /var
 mkdir bucket
@@ -100,8 +105,6 @@ chmod 777 /var/www/include/backup
 chmod 777 /var/www/include/settings
 echo > /var/www/include/settings/settings.txt
 chmod 777 /var/www/include/settings/settings.txt
-chmod 777 /var/www/install
-chmod 777 /var/www/install/extra
 chmod 777 /var/www/sqlerr_logs/
 chmod 777 /var/www/torrents
 sed 's/#mysql_user/'$user'/' /var/www/install/extra/config.xbtsample.php > /var/www/include/config.php
@@ -147,22 +150,22 @@ else
 
      checkxbt=`ps ax | grep -v grep | grep -c xbt_tracker`
 
-	 if [ $checkxbt -le 0 ]
+     if [ $checkxbt -le 0 ]
 
-	then 
+    then 
 
-	$STARTXBT
+    $STARTXBT
 
-		if ps ax | grep -v grep | grep $SERVICE >/dev/null
+        if ps ax | grep -v grep | grep $SERVICE >/dev/null
 
-	then
+    then
 
-		echo "$SERVICE service is now restarted, everything is fine"
+        echo "$SERVICE service is now restarted, everything is fine"
 
-		fi
+        fi
 
-	fi
-		
+    fi
+        
 fi
 
 ######CHECK MEMCACHED######
@@ -176,22 +179,22 @@ else
 
      chkmem=`ps ax | grep -v grep | grep -c memcached`
 
-	 if [ $chkmem -le 0 ]
+     if [ $chkmem -le 0 ]
 
-	then 
+    then 
 
-	$STARTMEMCACHED
+    $STARTMEMCACHED
 
-		if ps ax | grep -v grep | grep $SERVICE >/dev/null
+        if ps ax | grep -v grep | grep $SERVICE >/dev/null
 
-	then
+    then
 
-		echo "$SERVICE service is now restarted, everything is fine"
+        echo "$SERVICE service is now restarted, everything is fine"
 
-		fi
+        fi
 
-	fi
-		
+    fi
+        
 fi
 
 #####CHECK APACHE2###########
