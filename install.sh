@@ -11,6 +11,7 @@ db='u232'
 dbhost='localhost'
 blank=''
 announce='http:\/\/'
+xbt='xbt'
 codename=$(lsb_release -a | grep Codename | awk '{ printf $2 }')
 function randomString {
         local myStrLength=16;
@@ -31,7 +32,6 @@ read name
 echo -n "Enter the site's email: "
 read email
 announce=$announce$baseurl
-export DEBIAN_FRONTEND=noninteractive
 apt-get -y update
 apt-get -y upgrade
 updatedb
@@ -48,8 +48,43 @@ case $codename in
         software='software-properties-common'
         repository="deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.0/ubuntu $codename main"
         ;;
+    "squeeze")
+        software=''
+        repository="deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian $codename main"
+        echo "# MariaDB 10.1 repository list - created 2014-11-21 00:35 UTC # http://mariadb.org/mariadb/repositories/
+        deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian squeeze main
+        deb-src http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian squeeze main" > /etc/apt/sources.list.d/mariadb.list
+        xbt='php'
+        echo -n "You are running Debian 6, this script is not able to install XBT tracker is this ok? (y/n)"
+        read xbtyn
+        ;;
+    "precise" | "lucid")
+        software='python-software-properties'
+        repository="deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/ubuntu $codename main"
+        xbt='php'
+        echo -n "You are running Ubuntu 10 or 12, this script is not able to install XBT tracker is this ok? (y/n)"
+        read xbtyn
+        ;;
     *)
         echo `tput setaf 1``tput bold`"This OS is not yet supported! (EXITING)"`tput sgr0`
+        echo
+        exit 1
+        ;;
+esac
+if [[ $xbtyn = 'n' ]]; then
+    exit 1
+fi
+if [[ $xbt = 'xbt' ]]; then
+    echo -n "Do you want to run XBT tracker or php? (xbt/php)"
+    read xbt
+fi
+case $xbt in
+    'xbt')
+        ;;
+    'php')
+        ;;
+    *)
+        echo`tput setaf 1``tput bold`"You did not enter a valid tracker type (EXITING)"`tput sgr0`
         echo
         exit 1
         ;;
@@ -58,7 +93,11 @@ apt-get -y install $software
 apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
 add-apt-repository "$repository"
 apt-get -y update
-apt-get -y install mariadb-server libmariadbclient-dev apache2 memcached libpcre3 libpcre3-dev cmake g++ libboost-date-time-dev libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev make subversion zlib1g-dev unzip libssl-dev php5 libapache2-mod-php5 php5-mysql php5-curl php5-gd php5-idn php-pear php5-imagick php5-imap php5-mcrypt php5-memcache php5-mhash php5-ming php5-ps php5-pspell php5-recode php5-snmp php5-sqlite php5-tidy php5-xmlrpc php5-xsl php5-json php5-cgi php5-dev phpmyadmin
+apt-get -y install mariadb-server apache2 memcached unzip libssl-dev php5 libapache2-mod-php5 php5-mysql php5-curl php5-gd php5-idn php-pear php5-imagick php5-imap php5-mcrypt php5-memcache php5-mhash php5-ming php5-ps php5-pspell php5-recode php5-snmp php5-sqlite php5-tidy php5-xmlrpc php5-xsl php5-json php5-cgi php5-dev phpmyadmin
+
+if [[ $xbt = 'xbt' ]]; then
+    apt-get -y install libmariadbclient-dev libpcre3 libpcre3-dev cmake g++ libboost-date-time-dev libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev make subversion zlib1g-dev 
+fi
 mysql_secure_installation
 cd /etc/apache2/sites-enabled
 sed -i 's/\/var\/www\/html/\/var\/www/' 000-default*
@@ -103,7 +142,8 @@ echo > /var/www/include/settings/settings.txt
 chmod 777 /var/www/include/settings/settings.txt
 chmod 777 /var/www/sqlerr_logs/
 chmod 777 /var/www/torrents
-sed 's/#mysql_user/'$user'/' /var/www/install/extra/config.xbtsample.php > /var/www/include/config.php
+configfile='/var/www/install/extra/config.'$xbt'sample.php'
+sed 's/#mysql_user/'$user'/' $configfile > /var/www/include/config.php
 sed -i 's/#mysql_pass/'$pass'/' /var/www/include/config.php
 sed -i 's/#mysql_db/'$db'/' /var/www/include/config.php
 sed -i 's/#mysql_host/'$dbhost'/' /var/www/include/config.php
@@ -115,55 +155,59 @@ sed -i 's/#announce_urls/'$announce'/' /var/www/include/config.php
 sed -i 's/#announce_https/'$blank'/' /var/www/include/config.php
 sed -i 's/#site_email/'$email'/' /var/www/include/config.php
 sed -i 's/#site_name/'$name'/' /var/www/include/config.php
-sed 's/#mysql_user/'$user'/' /var/www/install/extra/ann_config.xbtsample.php > /var/www/include/ann_config.php
+annconfigfile='/var/www/install/extra/ann_config.'$xbt'sample.php'
+sed 's/#mysql_user/'$user'/' $annconfigfile > /var/www/include/ann_config.php
 sed -i 's/#mysql_pass/'$pass'/' /var/www/include/ann_config.php
 sed -i 's/#mysql_db/'$db'/' /var/www/include/ann_config.php
 sed -i 's/#mysql_host/'$dbhost'/' /var/www/include/ann_config.php
 sed -i 's/#baseurl/'$baseurl'/' /var/www/include/ann_config.php
-mysql -u $user -p$pass $db < /var/www/install/extra/install.xbt.sql
+mysqlfile='/var/www/install/extra/install.'$xbt'.sql'
+mysql -u $user -p$pass $db < $mysqlfile
 mv /var/www/install /var/www/.install
+rm /var/www/index.html
 
 cd ~
-svn co http://xbt.googlecode.com/svn/trunk/xbt/misc xbt/misc
-svn co http://xbt.googlecode.com/svn/trunk/xbt/Tracker xbt/Tracker
-sleep 2
-cp -R /var/www/XBT/{server.cpp,server.h,xbt_tracker.conf}  /root/xbt/Tracker/
-cd /root/xbt/Tracker/
-./make.sh
-sed -i 's/mysql_user=/mysql_user='$user'/' /root/xbt/Tracker/xbt_tracker.conf
-sed -i 's/mysql_password=/mysql_password='$pass'/' /root/xbt/Tracker/xbt_tracker.conf
-sed -i 's/mysql_database=/mysql_database='$db'/' /root/xbt/Tracker/xbt_tracker.conf
-sed -i 's/mysql_host=/mysql_host'$dbhost'/' /root/xbt/Tracker/xbt_tracker.conf
-cd /root/xbt/Tracker
-./xbt_tracker
-cd /root/xbt/Tracker/ 
-SERVICE='xbt_tracker'
- if  ps ax | grep -v grep | grep $SERVICE > /dev/null
-then
-    echo "$SERVICE service running, everything is fine"
-else
-    echo "$SERVICE is not running, restarting $SERVICE" 
-
-     checkxbt=`ps ax | grep -v grep | grep -c xbt_tracker`
-
-     if [ $checkxbt -le 0 ]
-
-    then 
-
-    $STARTXBT
-
-        if ps ax | grep -v grep | grep $SERVICE >/dev/null
-
+if [[ $xbt = 'xbt' ]]; then
+    svn co http://xbt.googlecode.com/svn/trunk/xbt/misc xbt/misc
+    svn co http://xbt.googlecode.com/svn/trunk/xbt/Tracker xbt/Tracker
+    sleep 2
+    cp -R /var/www/XBT/{server.cpp,server.h,xbt_tracker.conf}  /root/xbt/Tracker/
+    cd /root/xbt/Tracker/
+    ./make.sh
+    sed -i 's/mysql_user=/mysql_user='$user'/' /root/xbt/Tracker/xbt_tracker.conf
+    sed -i 's/mysql_password=/mysql_password='$pass'/' /root/xbt/Tracker/xbt_tracker.conf
+    sed -i 's/mysql_database=/mysql_database='$db'/' /root/xbt/Tracker/xbt_tracker.conf
+    sed -i 's/mysql_host=/mysql_host'$dbhost'/' /root/xbt/Tracker/xbt_tracker.conf
+    cd /root/xbt/Tracker
+    ./xbt_tracker
+    cd /root/xbt/Tracker/ 
+    SERVICE='xbt_tracker'
+     if  ps ax | grep -v grep | grep $SERVICE > /dev/null
     then
+        echo "$SERVICE service running, everything is fine"
+    else
+        echo "$SERVICE is not running, restarting $SERVICE" 
 
-        echo "$SERVICE service is now restarted, everything is fine"
+         checkxbt=`ps ax | grep -v grep | grep -c xbt_tracker`
+
+         if [ $checkxbt -le 0 ]
+
+        then 
+
+        $STARTXBT
+
+            if ps ax | grep -v grep | grep $SERVICE >/dev/null
+
+        then
+
+            echo "$SERVICE service is now restarted, everything is fine"
+
+            fi
 
         fi
-
+            
     fi
-        
 fi
-
 ######CHECK MEMCACHED######
 SERVICE='memcached'
 
