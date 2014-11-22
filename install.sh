@@ -50,7 +50,7 @@ case $codename in
         ;;
     "squeeze")
         software=''
-        repository="deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian $codename main"
+        repository=''
         echo "# MariaDB 10.1 repository list - created 2014-11-21 00:35 UTC # http://mariadb.org/mariadb/repositories/
         deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian squeeze main
         deb-src http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian squeeze main" > /etc/apt/sources.list.d/mariadb.list
@@ -91,7 +91,9 @@ case $xbt in
 esac
 apt-get -y install $software
 apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db
-add-apt-repository "$repository"
+if [[ $codename -ne "squeeze" ]]; then
+	add-apt-repository "$repository"
+fi
 apt-get -y update
 apt-get -y install mariadb-server apache2 memcached unzip libssl-dev php5 libapache2-mod-php5 php5-mysql php5-curl php5-gd php5-idn php-pear php5-imagick php5-imap php5-mcrypt php5-memcache php5-mhash php5-ming php5-ps php5-pspell php5-recode php5-snmp php5-sqlite php5-tidy php5-xmlrpc php5-xsl php5-json php5-cgi php5-dev phpmyadmin
 
