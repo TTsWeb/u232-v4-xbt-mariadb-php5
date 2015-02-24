@@ -10,7 +10,9 @@ user='u232'
 db='u232'
 dbhost='localhost'
 blank=''
-announce='http:\/\/'
+announcebase='http:\/\/'
+httpsannouncebase='https:\/\/'
+announce2='/announce.php'
 xbt='xbt'
 codename=$(lsb_release -a | grep Codename | awk '{ printf $2 }')
 function randomString {
@@ -31,7 +33,8 @@ echo -n "Enter the site's name: "
 read name
 echo -n "Enter the site's email: "
 read email
-announce=$announce$baseurl
+announce=$announcebase$baseurl$announce2
+httpsannounce=$httpsannouncebase$baseurl$announce2
 apt-get -y update
 apt-get -y upgrade
 updatedb
@@ -99,6 +102,7 @@ apt-get -y update
 apt-get -y install mariadb-server apache2 memcached unzip libssl-dev php5 libapache2-mod-php5 php5-mysql php5-curl php5-gd php5-idn php-pear php5-imagick php5-imap php5-mcrypt php5-memcache php5-mhash php5-ming php5-ps php5-pspell php5-recode php5-snmp php5-sqlite php5-tidy php5-xmlrpc php5-xsl php5-json php5-cgi php5-dev phpmyadmin
 
 if [[ $xbt = 'xbt' ]]; then
+    announce=$announcebase$baseurl
     apt-get -y install libmariadbclient-dev libpcre3 libpcre3-dev cmake g++ libboost-date-time-dev libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev make subversion zlib1g-dev 
 fi
 mysql_secure_installation
@@ -120,12 +124,11 @@ tar xfz GeoIP.tar.gz
 tar xfz javairc.tar.gz
 tar xfz Log_Viewer.tar.gz
 cd /var
-mkdir bucket
-mkdir bucket/avatar
-cd bucket
+mkdir -p /var/bucket/avatar
+cd /var/bucket
 cp ~/U-232-V4-master/torrents/.htaccess .
 cp ~/U-232-V4-master/torrents/index.* .
-cd avatar
+cd /var/bucket/avatar
 cp ~/U-232-V4-master/torrents/.htaccess .
 cp ~/U-232-V4-master/torrents/index.* .
 cd ~
@@ -155,7 +158,7 @@ sed -i 's/#cookie_path/'$blank'/' /var/www/include/config.php
 sed -i 's/#cookie_domain/'$blank'/' /var/www/include/config.php
 sed -i 's/#domain/'$blank'/' /var/www/include/config.php
 sed -i 's/#announce_urls/'$announce'/' /var/www/include/config.php
-sed -i 's/#announce_https/'$blank'/' /var/www/include/config.php
+sed -i 's/#announce_https/'$httpsannounce'/' /var/www/include/config.php
 sed -i 's/#site_email/'$email'/' /var/www/include/config.php
 sed -i 's/#site_name/'$name'/' /var/www/include/config.php
 annconfigfile='/var/www/install/extra/ann_config.'$xbt'sample.php'
@@ -168,6 +171,8 @@ mysqlfile='/var/www/install/extra/install.'$xbt'.sql'
 mysql -u $user -p$pass $db < $mysqlfile
 mv /var/www/install /var/www/.install
 rm /var/www/index.html
+chown -R www-data:www-data /var/www
+chown -R www-data:www-data /var/bucket
 
 cd ~
 if [[ $xbt = 'xbt' ]]; then
@@ -193,7 +198,7 @@ if [[ $xbt = 'xbt' ]]; then
 
          checkxbt=`ps ax | grep -v grep | grep -c xbt_tracker`
 
-         if [ $checkxbt -le 0 ]
+         if [ $checkxbt <= 0 ]
 
         then 
 
@@ -222,7 +227,7 @@ else
 
      chkmem=`ps ax | grep -v grep | grep -c memcached`
 
-     if [ $chkmem -le 0 ]
+     if [ $chkmem <= 0 ]
 
     then 
 
@@ -255,7 +260,7 @@ else
 
         checkapache=`ps ax | grep -v grep | grep -c apache2`
 
-                if [ $checkapache -le 0 ]
+                if [ $checkapache <= 0 ]
 
                 then
 
