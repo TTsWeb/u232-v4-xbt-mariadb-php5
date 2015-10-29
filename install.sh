@@ -176,8 +176,8 @@ chown -R www-data:www-data /var/bucket
 
 cd ~
 if [[ $xbt = 'xbt' ]]; then
-    svn co http://xbt.googlecode.com/svn/trunk/xbt/misc xbt/misc
-    svn co http://xbt.googlecode.com/svn/trunk/xbt/Tracker xbt/Tracker
+    svn co -r 2466 http://xbt.googlecode.com/svn/trunk/xbt/misc xbt/misc
+    svn co -r 2466 http://xbt.googlecode.com/svn/trunk/xbt/Tracker xbt/Tracker
     sleep 2
     cp -R /var/www/XBT/{server.cpp,server.h,xbt_tracker.conf}  /root/xbt/Tracker/
     cd /root/xbt/Tracker/
