@@ -37,7 +37,7 @@ announce=$announcebase$baseurl$announce2
 httpsannounce=$httpsannouncebase$baseurl$announce2
 apt-get -y update
 apt-get -y upgrade
-updatedb
+
 case $codename in
 	"jessie")
         software='software-properties-common'
@@ -103,13 +103,14 @@ if [[ $codename != "squeeze" ]]; then
 fi
 
 apt-get -y update
-apt-get -y install mariadb-server apache2 memcached unzip libssl-dev php5 libapache2-mod-php5 php5-mysql php5-memcache php5-json
+apt-get -y install mariadb-server apache2 memcached unzip libssl-dev php5 libapache2-mod-php5 php5-mysql php5-memcache php5-json locate
 apt-get -y install phpmyadmin
 
 if [[ $xbt = 'xbt' ]]; then
     announce=$announcebase$baseurl
     apt-get -y install libmariadbclient-dev libpcre3 libpcre3-dev cmake g++ libboost-date-time-dev libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev make subversion zlib1g-dev 
 fi
+updatedb
 mysql_secure_installation
 cd /etc/apache2/sites-enabled
 sed -i 's/\/var\/www\/html/\/var\/www/' 000-default*
