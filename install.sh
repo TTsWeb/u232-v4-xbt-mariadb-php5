@@ -39,35 +39,31 @@ apt-get -y update
 apt-get -y upgrade
 
 case $codename in
-	"jessie")
+	"jessie" | "wheezy") ## Debian Flavors (can do xbt)
         software='software-properties-common'
         repository="deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian $codename main"
         ;;
-    "trusty")
+    "trusty" | "vivid" | "saucy") ## Ubuntu Flavors (can do xbt)
         software='software-properties-common'
-        repository="deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/ubuntu $codename main"
+        repository="deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/ubuntu $codename main"
         ;;
-    "wheezy")
-        software='python-software-properties'
-        repository="deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian $codename main"
-        ;;
-    "saucy")
+    "wily") ## Ubuntu Wily (Mariadb does not have specific repository yet)
         software='software-properties-common'
-        repository="deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.0/ubuntu $codename main"
+        repository="deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/ubuntu vivid main"
         ;;
-    "squeeze")
+    "squeeze") ## Debian Squeeze (cannot handle xbt, needs to make its own file for repository)
         software=''
         repository=''
         echo "# MariaDB 10.1 repository list - created 2014-11-21 00:35 UTC # http://mariadb.org/mariadb/repositories/
-        deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian squeeze main
+        deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian squeeze main
         deb-src http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian squeeze main" > /etc/apt/sources.list.d/mariadb.list
         xbt='php'
         echo -n "You are running Debian 6, this script is not able to install XBT tracker is this ok? (y/n)"
         read xbtyn
         ;;
-    "precise" | "lucid")
+    "precise" | "lucid") ## Ubuntu Flavors (cannot do xbt)
         software='python-software-properties'
-        repository="deb http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/ubuntu $codename main"
+        repository="deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/ubuntu $codename main"
         xbt='php'
         echo -n "You are running Ubuntu 10 or 12, this script is not able to install XBT tracker is this ok? (y/n)"
         read xbtyn
@@ -118,7 +114,6 @@ $STARTAPACHE
 cd ~
 echo 'Please enter your root password for MYSQL when asked'
 echo "create database $db;
-create user $user;
 grant all on $db.* to '$user'@'localhost'identified by '$pass';" > blah.sql
 mysql -u root -p < blah.sql
 rm blah.sql
