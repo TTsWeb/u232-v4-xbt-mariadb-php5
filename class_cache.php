@@ -43,7 +43,7 @@ $md5 = md5($key);
         }
 */
 if (!extension_loaded('memcached')) {
-    die('Memcache Extension not loaded.');
+    die('Memcached Extension not loaded.');
 }
 class CACHE extends Memcached
 {
