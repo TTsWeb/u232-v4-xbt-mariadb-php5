@@ -177,6 +177,7 @@ sed -i 's/#mysql_pass/'$pass'/' /var/www/include/ann_config.php
 sed -i 's/#mysql_db/'$db'/' /var/www/include/ann_config.php
 sed -i 's/#mysql_host/'$dbhost'/' /var/www/include/ann_config.php
 sed -i 's/#baseurl/'$baseurl'/' /var/www/include/ann_config.php
+sed -i 's/getStats()/getStats()["127.0.0.1:11211"]/' /var/www/templates/1/template.php
 mysqlfile='/var/www/install/extra/install.'$xbt'.sql'
 mysql -u $user -p$pass $db < $mysqlfile
 mv /var/www/install /var/www/.install
