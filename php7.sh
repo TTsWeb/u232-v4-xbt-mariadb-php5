@@ -3,7 +3,6 @@ if [[ $EUID != 0 ]]; then
   echo "This script must be run as root" 1>&2
   exit 1
 fi
-STARTNGINX='service nginx restart'
 STARTXBT='./xbt_tracker'
 STARTMEMCACHED='service memcached restart'
 STARTPHPFPM='service php7.0-fpm restart'
@@ -35,6 +34,8 @@ echo -n "Enter the site's email: "
 read email
 echo -n "Do you want to enable SSL (y/n): "
 read ssl
+echo -n "Do you want to install apache2 or nginx (apache2/nginx): "
+read webserver
 announce=$announcebase$baseurl$announce2
 httpsannounce=$httpsannouncebase$baseurl$announce2
 apt-get -y update
@@ -74,50 +75,66 @@ apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb9
 wget https://www.dotdeb.org/dotdeb.gpg
 apt-key add dotdeb.gpg
 rm dotdeb.gpg
-add-apt-repository "deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian jessie main"
 add-apt-repository "deb http://packages.dotdeb.org jessie all"
+add-apt-repository "deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian jessie main"
+if [[ $webserver = 'nginx' ]]; then
+	STARTWEBSERVER='service nginx restart'
+	webpackages='php7.0-fpm nginx'
+elif [[ $webserver = 'apache2' ]]; then
+	STARTWEBSERVER='service apache2 restart'
+	webpackages='libapache2-mod-php7.0 apache2'
+fi
 
 apt-get -y update
-apt-get -y install mariadb-server memcached unzip libssl-dev php7.0 php7.0-mysql php7.0-json locate php7.0-fpm nginx php7.0-memcached $extras
+apt-get -y install mariadb-server memcached unzip libssl-dev php7.0 php7.0-mysql php7.0-json locate php7.0-memcached $webpackages $extras
 
 updatedb
 mysql_secure_installation
-cd /etc/nginx/sites-enabled
-sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/' /etc/php/7.0/fpm/php.ini
-sed -i "s/user = www-data/user = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
-sed -i "s/group = www-data/group = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
-sed -i "s/;listen\.owner.*/listen.owner = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
-sed -i "s/;listen\.group.*/listen.group = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
-sed -i "s/;listen\.mode.*/listen.mode = 0660/" /etc/php/7.0/fpm/pool.d/www.conf # This passage in not required normally
-echo "memcached.serializer = 'php'" >> /etc/php/7.0/fpm/php.ini
-rm default*
-cd ../sites-available
-rm default*
-echo "server {
-    listen 80 default_server;
 
-    root /var/www;
-    index index.html index.htm index.php;
+if [[ $webserver = 'nginx' ]]; then
+	cd /etc/nginx/sites-enabled
+	sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/' /etc/php/7.0/fpm/php.ini
+	sed -i "s/user = www-data/user = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
+	sed -i "s/group = www-data/group = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
+	sed -i "s/;listen\.owner.*/listen.owner = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
+	sed -i "s/;listen\.group.*/listen.group = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
+	sed -i "s/;listen\.mode.*/listen.mode = 0660/" /etc/php/7.0/fpm/pool.d/www.conf # This passage in not required normally
+	echo "memcached.serializer = 'php'" >> /etc/php/7.0/fpm/php.ini
+	rm default*
+	cd ../sites-available
+	rm default*
+	echo "server {
+	    listen 80 default_server;
 
-    server_name $baseurl;
+	    root /var/www;
+	    index index.html index.htm index.php;
 
-    location / {
-        try_files \$uri \$uri/ /index.php\$is_args\$args;
-    }
+	    server_name $baseurl;
 
-    location ~ \.php\$ {
-        fastcgi_split_path_info ^(.+\.php)(/.+)\$;
+	    location / {
+	        try_files \$uri \$uri/ /index.php\$is_args\$args;
+	    }
 
-        # With php7.0-fpm:
-        fastcgi_pass unix:/run/php/php7.0-fpm.sock;
+	    location ~ \.php\$ {
+	        fastcgi_split_path_info ^(.+\.php)(/.+)\$;
 
-        fastcgi_index index.php;
-        include fastcgi_params;
-        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-    }
-}" > /etc/nginx/sites-available/default
-ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled
-$STARTNGINX
+	        # With php7.0-fpm:
+	        fastcgi_pass unix:/run/php/php7.0-fpm.sock;
+
+	        fastcgi_index index.php;
+	        include fastcgi_params;
+	        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+	    }
+	}" > /etc/nginx/sites-available/default
+	ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled
+	$STARTWEBSERVER
+	$STARTPHPFPM
+elif [[ $webserver = 'apache2' ]]; then
+	cd /etc/apache2/sites-enabled
+	sed -i 's/\/var\/www\/html/\/var\/www/' 000-default*
+	echo "memcached.serializer = 'php'" >> /etc/php/7.0/apache2/php.ini
+	$STARTWEBSERVER
+fi
 cd ~
 echo 'Please enter your root password for MYSQL when asked'
 echo "create database $db;
@@ -181,7 +198,9 @@ sed -i 's/getStats()/getStats()["127.0.0.1:11211"]/' /var/www/templates/1/templa
 mysqlfile='/var/www/install/extra/install.'$xbt'.sql'
 mysql -u $user -p$pass $db < $mysqlfile
 mv /var/www/install /var/www/.install
-rm /var/www/index.html
+if [[ ! -f /var/www/index.html ]]; then
+	rm /var/www/index.html
+fi
 chown -R www-data:www-data /var/www
 chown -R www-data:www-data /var/bucket
 
@@ -191,32 +210,27 @@ echo "; configuration for php memcached module
 ; priority=20
 extension=memcached.so" > /etc/php/mods-available/memcached.ini
 fi
-if [ ! -f /etc/php/7.0/fpm/conf.d/20-memcached.ini ]; then
-ln -s /etc/php/mods-available/memcached.ini /etc/php/7.0/fpm/conf.d/20-memcached.ini
-fi
 if [ ! -f /etc/php/7.0/cli/conf.d/20-memcached.ini ]; then
 ln -s /etc/php/mods-available/memcached.ini /etc/php/7.0/cli/conf.d/20-memcached.ini
 fi
+if [ ! -f /etc/php/7.0/fpm/conf.d/20-memcached.ini ] && [[ $webserver = 'nginx' ]]; then
+ln -s /etc/php/mods-available/memcached.ini /etc/php/7.0/fpm/conf.d/20-memcached.ini
 $STARTPHPFPM
+fi
+if [[ $webserver = 'apache2' ]] && [[ ! -f /etc/php/7.0/apache2/conf.d/20-memcached.ini ]]; then
+	ln -s /etc/php/mods-available/memcached.ini /etc/php/7.0/apache2/conf.d/20-memcached.ini
+fi
 cd ~
 
-if [[ $ssl = 'y' ]]; then
+if [[ $ssl = 'y' ]] && [[ $webserver = 'nginx' ]]; then
 	apt-get install -y openssl
-	mkdir -p /etc/nginx/ssl/cert
-	mkdir -p /etc/nginx/ssl/private
-	openssl genrsa -des3 -out $baseurl.key 2048
-	openssl req -new -key $baseurl.key -out $baseurl.csr
-	cp $baseurl.key $baseurl.key.org
-	openssl rsa -in $baseurl.key.org -out $baseurl.key
-	rm $baseurl.key.org
-	openssl x509 -req -days 365 -in $baseurl.csr -signkey $baseurl.key -out $baseurl.crt
-	cp $baseurl.crt /etc/nginx/ssl/cert/
-	cp $baseurl.key /etc/nginx/ssl/private/
+	mkdir -p /etc/nginx/ssl
+	openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/$baseurl.key -out /etc/nginx/ssl/$baseurl.crt
 	echo "server {
     listen   443;
     ssl on;
-    ssl_certificate /etc/nginx/ssl/cert/$baseurl.crt;
-    ssl_certificate_key /etc/nginx/ssl/private/$baseurl.key;
+    ssl_certificate /etc/nginx/ssl/$baseurl.crt;
+    ssl_certificate_key /etc/nginx/ssl/$baseurl.key;
     server_name $baseurl;
     root /var/www;
     index index.html index.htm index.php;
@@ -239,9 +253,19 @@ if [[ $ssl = 'y' ]]; then
     }
 }" > /etc/nginx/sites-available/$baseurl-ssl
 ln -s /etc/nginx/sites-available/$baseurl-ssl /etc/nginx/sites-enabled
+elif [[ $ssl = 'y' ]] && [[ $webserver = 'apache2' ]]; then
+	apt-get install -y openssl
+	mkdir -p /etc/apache2/ssl
+	openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/apache2/ssl/$baseurl.key -out /etc/apache2/ssl/$baseurl.crt
+	sed -i 's/\/var\/www\/html/\/var\/www/' /etc/apache2/sites-available/default-ssl.conf
+	sed -i 's/\/etc\/ssl\/certs\/ssl-cert-snakeoil.pem/\/etc\/apache2\/ssl\/'$baseurl'.crt/' /etc/apache2/sites-available/default-ssl.conf
+	sed -i 's/\/etc\/ssl\/private\/ssl-cert-snakeoil.key/\/etc\/apache2\/ssl\/'$baseurl'.key/' /etc/apache2/sites-available/default-ssl.conf
+	chmod 600 /etc/apache2/ssl/*
+	a2enmod ssl
+	a2ensite default-ssl
 fi
 
-$STARTNGINX
+$STARTWEBSERVER
 
 if [[ $xbt = 'xbt' ]]; then
     svn co -r 2466 http://xbt.googlecode.com/svn/trunk/xbt/misc xbt/misc
@@ -262,26 +286,16 @@ if [[ $xbt = 'xbt' ]]; then
     then
         echo "$SERVICE service running, everything is fine"
     else
-        echo "$SERVICE is not running, restarting $SERVICE" 
-
-         checkxbt=`ps ax | grep -v grep | grep -c xbt_tracker`
-
-         if [ $checkxbt <= 0 ]
-
-        then 
-
-        $STARTXBT
-
-            if ps ax | grep -v grep | grep $SERVICE >/dev/null
-
+        echo "$SERVICE is not running, restarting $SERVICE"
+        checkxbt="ps ax | grep -v grep | grep -c $SERVICE"
+        if [ $checkxbt <= 0 ]
         then
-
+        $STARTXBT
+            if ps ax | grep -v grep | grep $SERVICE >/dev/null
+        then
             echo "$SERVICE service is now restarted, everything is fine"
-
             fi
-
         fi
-            
     fi
 fi
 ######CHECK MEMCACHED######
@@ -292,79 +306,56 @@ then
     echo "$SERVICE service running, everything is fine"
 else
     echo "$SERVICE is not running, restarting $SERVICE" 
-
-     chkmem=`ps ax | grep -v grep | grep -c memcached`
-
-     if [ $chkmem <= 0 ]
-
-    then 
-
-    $STARTMEMCACHED
-
-        if ps ax | grep -v grep | grep $SERVICE >/dev/null
-
+    chkmem="ps ax | grep -v grep | grep -c $SERVICE"
+    if [ $chkmem <= 0 ]
     then
-
+    $STARTMEMCACHED
+        if ps ax | grep -v grep | grep $SERVICE >/dev/null
+    then
         echo "$SERVICE service is now restarted, everything is fine"
-
         fi
-
     fi
-        
 fi
 ######CHECK nginx######
-SERVICE='nginx'
-
- if  ps ax | grep -v grep | grep $SERVICE > /dev/null
-then
-    echo "$SERVICE service running, everything is fine"
-else
-    echo "$SERVICE is not running, restarting $SERVICE" 
-
-     chkmem=`ps ax | grep -v grep | grep -c memcached`
-
-     if [ $chkmem <= 0 ]
-
-    then 
-
-    $STARTNGINX
-
-        if ps ax | grep -v grep | grep $SERVICE >/dev/null
-
-    then
-
-        echo "$SERVICE service is now restarted, everything is fine"
-
-        fi
-
-    fi
-        
+if [[ $webserver = 'nginx' ]]; then
+	SERVICE='nginx'
 fi
-######CHECK php-fpm######
-SERVICE='php-fpm'
+if [[ $webserver = 'apache2' ]]; then
+	SERVICE='apache2'
+fi
 
- if  ps ax | grep -v grep | grep $SERVICE > /dev/null
+if  ps ax | grep -v grep | grep $SERVICE > /dev/null
 then
     echo "$SERVICE service running, everything is fine"
 else
     echo "$SERVICE is not running, restarting $SERVICE" 
-
-     chkmem=`ps ax | grep -v grep | grep -c memcached`
-
-     if [ $chkmem <= 0 ]
-
-    then 
-
-    $STARTPHPFPM
-
-        if ps ax | grep -v grep | grep $SERVICE >/dev/null
-
+    chkmem="ps ax | grep -v grep | grep -c $SERVICE"
+    if [ $chkmem <= 0 ]
     then
-
+    $STARTWEBSERVER
+        if ps ax | grep -v grep | grep $SERVICE >/dev/null
+    then
         echo "$SERVICE service is now restarted, everything is fine"
-
         fi
-
     fi
-        
+fi
+if [[ $webserver = 'nginx' ]]; then
+	######CHECK php-fpm######
+	SERVICE='php-fpm'
+
+	if  ps ax | grep -v grep | grep $SERVICE > /dev/null
+	then
+	    echo "$SERVICE service running, everything is fine"
+	else
+	    echo "$SERVICE is not running, restarting $SERVICE" 
+	    chkmem="ps ax | grep -v grep | grep -c $SERVICE"
+	    if [ $chkmem <= 0 ]
+	    then
+	    $STARTPHPFPM
+	        if ps ax | grep -v grep | grep $SERVICE >/dev/null
+	    then
+	        echo "$SERVICE service is now restarted, everything is fine"
+	        fi
+	    fi
+	fi
 fi
