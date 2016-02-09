@@ -23,6 +23,8 @@ function randomString {
 
 randomString;
 pass=$myRandomResult
+randomString;
+pmakey=myRandomResult
 clear
 
 echo 'This will install the absolute minimum requirements to get the site running'
@@ -37,6 +39,8 @@ This will install a self-signed certificate: "
 read ssl
 echo -n "Do you want to install apache2 or nginx (apache2/nginx): "
 read webserver
+echo -n "Do you want to run XBT tracker or php? (xbt/php) "
+read xbt
 announce=$announcebase$baseurl$announce2
 httpsannounce=$httpsannouncebase$baseurl$announce2
 apt-get -y update
@@ -53,10 +57,6 @@ case $codename in
         exit 1
         ;;
 esac
-if [[ $xbt = 'xbt' ]]; then
-    echo -n "Do you want to run XBT tracker or php? (xbt/php) "
-    read xbt
-fi
 case $xbt in
     'xbt')
 		extras='libmariadbclient-dev libpcre3 libpcre3-dev cmake g++ libboost-date-time-dev libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev make subversion zlib1g-dev'
@@ -105,32 +105,55 @@ if [[ $webserver = 'nginx' ]]; then
 	cd ../sites-available
 	rm default*
 	echo "server {
-	    listen 80 default_server;
+    listen 80 default_server;
 
-	    root /var/www;
-	    index index.html index.htm index.php;
+    root /var/www;
+    index index.html index.htm index.php;
 
-	    server_name $baseurl;
+    server_name $baseurl;
 
-	    location / {
-	        try_files \$uri \$uri/ /index.php\$is_args\$args;
-	    }
+    location / {
+        try_files \$uri \$uri/ /index.php\$is_args\$args;
+    }
 
-	    location ~ \.php\$ {
-	        fastcgi_split_path_info ^(.+\.php)(/.+)\$;
+    location ~ \.php\$ {
+        fastcgi_split_path_info ^(.+\.php)(/.+)\$;
+        fastcgi_pass unix:/run/php/php7.0-fpm.sock;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    }
 
-	        # With php7.0-fpm:
-	        fastcgi_pass unix:/run/php/php7.0-fpm.sock;
+    location /pma {
+        root /var;
+        index index.php index.html index.htm;
+        location ~ ^/pma/(.+\.php)$ {
+            try_files \$uri =404;
+            root /var;
+            fastcgi_pass unix:/run/php/php7.0-fpm.sock;
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+            include /etc/nginx/fastcgi_params;
+        }
 
-	        fastcgi_index index.php;
-	        include fastcgi_params;
-	        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
-	    }
-	}" > /etc/nginx/sites-available/default
+        location ~* ^/pma/(.+\.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
+            root /var;
+        }
+    }
+}" > /etc/nginx/sites-available/default
 	ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled
 	$STARTWEBSERVER
 	$STARTPHPFPM
+    cd ~
+    wget https://files.phpmyadmin.net/phpMyAdmin/4.5.4.1/phpMyAdmin-4.5.4.1-english.tar.gz
+    tar xfz phpMyAdmin-4.5.4.1-english.tar.gz
+    rm phpMyAdmin-4.5.4.1-english.tar.gz
+    mv phpMyAdmin-4.5.4.1-english /var/pma/
+    cd /var/pma/
+    cp config.sample.inc.php config.inc.php
+    sed -i "s/\$cfg\["\'"blowfish_secret"\'"\] \= "\'\'"\;/\$cfg\["\'"blowfish_secret"\'"\] \= "\'""$pmakey""\'"\;/" config.inc.php
 elif [[ $webserver = 'apache2' ]]; then
+    apt-get install -y phpmyadmin
 	cd /etc/apache2/sites-enabled
 	sed -i 's/\/var\/www\/html/\/var\/www/' 000-default*
 	echo "memcached.serializer = 'php'" >> /etc/php/7.0/apache2/php.ini
@@ -244,13 +267,27 @@ if [[ $ssl = 'y' ]] && [[ $webserver = 'nginx' ]]; then
 
     location ~ \.php\$ {
         fastcgi_split_path_info ^(.+\.php)(/.+)\$;
-
-        # With php7.0-fpm:
         fastcgi_pass unix:/run/php/php7.0-fpm.sock;
-
         fastcgi_index index.php;
         include fastcgi_params;
         fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+    }
+
+    location /pma {
+        root /var;
+        index index.php index.html index.htm;
+        location ~ ^/pma/(.+\.php)$ {
+            try_files \$uri =404;
+            root /var;
+            fastcgi_pass unix:/run/php/php7.0-fpm.sock;
+            fastcgi_index index.php;
+            fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+            include /etc/nginx/fastcgi_params;
+        }
+
+        location ~* ^/pma/(.+\.(jpg|jpeg|gif|css|png|js|ico|html|xml|txt))$ {
+            root /var;
+        }
     }
 }" > /etc/nginx/sites-available/$baseurl-ssl
 ln -s /etc/nginx/sites-available/$baseurl-ssl /etc/nginx/sites-enabled
