@@ -32,7 +32,8 @@ echo -n "Enter the site's name: "
 read name
 echo -n "Enter the site's email: "
 read email
-echo -n "Do you want to enable SSL (y/n): "
+echo -n "Do you want to enable SSL (y/n)
+This will install a self-signed certificate: "
 read ssl
 echo -n "Do you want to install apache2 or nginx (apache2/nginx): "
 read webserver
@@ -53,7 +54,7 @@ case $codename in
         ;;
 esac
 if [[ $xbt = 'xbt' ]]; then
-    echo -n "Do you want to run XBT tracker or php? (xbt/php)"
+    echo -n "Do you want to run XBT tracker or php? (xbt/php) "
     read xbt
 fi
 case $xbt in
@@ -198,7 +199,7 @@ sed -i 's/getStats()/getStats()["127.0.0.1:11211"]/' /var/www/templates/1/templa
 mysqlfile='/var/www/install/extra/install.'$xbt'.sql'
 mysql -u $user -p$pass $db < $mysqlfile
 mv /var/www/install /var/www/.install
-if [[ ! -f /var/www/index.html ]]; then
+if [[ -f /var/www/index.html ]]; then
 	rm /var/www/index.html
 fi
 chown -R www-data:www-data /var/www
