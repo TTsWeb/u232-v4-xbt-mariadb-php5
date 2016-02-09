@@ -24,7 +24,7 @@ function randomString {
 randomString;
 pass=$myRandomResult
 randomString;
-pmakey=myRandomResult
+pmakey=$myRandomResult
 clear
 
 echo 'This will install the absolute minimum requirements to get the site running'
