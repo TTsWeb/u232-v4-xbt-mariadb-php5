@@ -397,3 +397,8 @@ if [[ $webserver = 'nginx' ]]; then
 	    fi
 	fi
 fi
+echo "The site should now be accessable at http://$baseurl"
+echo "phpMyAdmin is accessable at http://$baseurl/pma"
+if [[ $ssl = 'y' ]]; then
+	echo "Also at https://$baseurl and https://$baseurl/pma"
+fi
