@@ -92,6 +92,15 @@ apt-get -y install mariadb-server memcached unzip libssl-dev php7.0 php7.0-mysql
 updatedb
 mysql_secure_installation
 
+cd ~
+wget https://files.phpmyadmin.net/phpMyAdmin/4.5.4.1/phpMyAdmin-4.5.4.1-english.tar.gz
+tar xfz phpMyAdmin-4.5.4.1-english.tar.gz
+rm phpMyAdmin-4.5.4.1-english.tar.gz
+mv phpMyAdmin-4.5.4.1-english /var/pma/
+cd /var/pma/
+cp config.sample.inc.php config.inc.php
+sed -i "s/\$cfg\["\'"blowfish_secret"\'"\] \= "\'\'"\;/\$cfg\["\'"blowfish_secret"\'"\] \= "\'""$pmakey""\'"\;/" config.inc.php
+
 if [[ $webserver = 'nginx' ]]; then
 	cd /etc/nginx/sites-enabled
 	sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/' /etc/php/7.0/fpm/php.ini
@@ -144,19 +153,16 @@ if [[ $webserver = 'nginx' ]]; then
 	ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled
 	$STARTWEBSERVER
 	$STARTPHPFPM
-    cd ~
-    wget https://files.phpmyadmin.net/phpMyAdmin/4.5.4.1/phpMyAdmin-4.5.4.1-english.tar.gz
-    tar xfz phpMyAdmin-4.5.4.1-english.tar.gz
-    rm phpMyAdmin-4.5.4.1-english.tar.gz
-    mv phpMyAdmin-4.5.4.1-english /var/pma/
-    cd /var/pma/
-    cp config.sample.inc.php config.inc.php
-    sed -i "s/\$cfg\["\'"blowfish_secret"\'"\] \= "\'\'"\;/\$cfg\["\'"blowfish_secret"\'"\] \= "\'""$pmakey""\'"\;/" config.inc.php
 elif [[ $webserver = 'apache2' ]]; then
-    apt-get install -y phpmyadmin
 	cd /etc/apache2/sites-enabled
 	sed -i 's/\/var\/www\/html/\/var\/www/' 000-default*
 	echo "memcached.serializer = 'php'" >> /etc/php/7.0/apache2/php.ini
+    echo "<Directory /var/pma>
+    Options FollowSymLinks
+    AllowOverride None
+    Require all granted
+</Directory>
+Alias /pma /var/pma" >> /etc/apache2/apache2.conf
 	$STARTWEBSERVER
 fi
 cd ~
