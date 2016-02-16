@@ -125,7 +125,7 @@ if [[ $webserver = 'nginx' ]]; then
         try_files \$uri \$uri/ /index.php\$is_args\$args;
     }
 
-    location ~ \.php\$ {
+    location ~ \.php {
         fastcgi_split_path_info ^(.+\.php)(/.+)\$;
         fastcgi_pass unix:/run/php/php7.0-fpm.sock;
         fastcgi_index index.php;
@@ -271,7 +271,7 @@ if [[ $ssl = 'y' ]] && [[ $webserver = 'nginx' ]]; then
         try_files \$uri \$uri/ /index.php\$is_args\$args;
     }
 
-    location ~ \.php\$ {
+    location ~ \.php {
         fastcgi_split_path_info ^(.+\.php)(/.+)\$;
         fastcgi_pass unix:/run/php/php7.0-fpm.sock;
         fastcgi_index index.php;
