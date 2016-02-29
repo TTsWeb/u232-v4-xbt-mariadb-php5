@@ -87,7 +87,7 @@ elif [[ $webserver = 'apache2' ]]; then
 fi
 
 apt-get -y update
-apt-get -y install mariadb-server memcached unzip libssl-dev php7.0 php7.0-mysql php7.0-json locate php7.0-memcached $webpackages $extras
+apt-get -y install mariadb-server memcached unzip libssl-dev php7.0 php7.0-mysql php7.0-json locate php7.0-memcached sendmail $webpackages $extras
 
 updatedb
 mysql_secure_installation
