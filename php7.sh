@@ -122,7 +122,7 @@ if [[ $webserver = 'nginx' ]]; then
     server_name $baseurl;
 
     location / {
-        try_files \$uri \$uri/ /index.php\$is_args\$args;
+        try_files \$uri \$uri/ =404;
     }
 
     location ~ \.php {
@@ -268,7 +268,7 @@ if [[ $ssl = 'y' ]] && [[ $webserver = 'nginx' ]]; then
     server_name $baseurl;
 
     location / {
-        try_files \$uri \$uri/ /index.php\$is_args\$args;
+        try_files \$uri \$uri/ =404;
     }
 
     location ~ \.php {
