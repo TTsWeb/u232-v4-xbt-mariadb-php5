@@ -171,7 +171,7 @@ echo "create database $db;
 grant all on $db.* to '$user'@'localhost'identified by '$pass';" > blah.sql
 mysql -u root -p < blah.sql
 rm blah.sql
-wget https://github.com/TTsWeb/U-232-V5/archive/master.tar.gz
+wget https://github.com/Bigjoos/U-232-V5/archive/master.tar.gz
 tar xfz master.tar.gz
 cd U-232-V5-master
 tar xfz pic.tar.gz
