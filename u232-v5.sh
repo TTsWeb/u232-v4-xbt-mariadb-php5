@@ -32,7 +32,7 @@ function randomString {
 
 function _depends() {
 apt-get -y update >>"${OUTTO}" 2>&1
-apt-get -y upgrade >>"${OUTTO}" 2>&1
+##apt-get -y upgrade >>"${OUTTO}" 2>&1
 apt-get -y install lsb-release >>"${OUTTO}" 2>&1
 }
 
@@ -68,8 +68,13 @@ read name
 echo -n "Enter the site's email: "
 read email
 echo -n "Do you want to enable SSL (y/n)
-This will install a self-signed certificate: "
+This will install a certificate from letsencrypt.org
+This requires the domain(s) to be pointed to this server already: "
 read ssl
+if [[ $ssl = 'y' ]]; then
+	echo -n "Do you need the certificate to include www.$baseurl (y/n)"
+	read www
+fi
 echo -n "Do you want to install apache2 or nginx (apache2/nginx): "
 read webserver
 echo -n "Do you want to run XBT tracker or php? (xbt/php) "
@@ -133,9 +138,11 @@ add-apt-repository "deb http://packages.dotdeb.org jessie all" >>"${OUTTO}" 2>&1
 add-apt-repository "deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian jessie main" >>"${OUTTO}" 2>&1
 if [[ $webserver = 'nginx' ]]; then
     STARTWEBSERVER='service nginx restart'
+    STOPWEBSERVER='service nginx stop'
     webpackages='php7.0-fpm nginx'
 elif [[ $webserver = 'apache2' ]]; then
     STARTWEBSERVER='service apache2 restart'
+    STOPWEBSERVER='service apache2 stop'
     webpackages='libapache2-mod-php7.0 apache2'
 fi
 
@@ -146,6 +153,11 @@ apt-get -y update >>"${OUTTO}" 2>&1
   echo mariadb-server-10.1 mysql-server/root_password password $mysqlroot | debconf-set-selections
   echo mariadb-server-10.1 mysql-server/root_password_again password $mysqlroot | debconf-set-selections
 apt-get -y install mariadb-server memcached unzip libssl-dev php7.0 php7.0-curl php7.0-igbinary php7.0-json php7.0-memcached php7.0-msgpack php-mbstring php7.0-gd php7.0-geoip php7.0-opcache php7.0-xml php7.0-zip php7.0-mcrypt php7.0-mysql sendmail sendmail-bin expect locate $webpackages $extras >>"${OUTTO}" 2>&1
+if [[ $ssl == 'y' ]]; then
+	add-apt-repository "deb http://ftp.debian.org/debian jessie-backports main" >>"${OUTTO}" 2>&1
+	apt-get -y update >>"${OUTTO}" 2>&1
+	apt-get -y install python-certbot-apache certbot -t jessie-backports >>"${OUTTO}" 2>&1
+fi
 }
 function _securemysql() {
 SECURE_MYSQL=$(expect -c "
@@ -266,16 +278,28 @@ if [[ $webserver = 'apache2' ]] && [[ ! -f /etc/php/7.0/apache2/conf.d/20-memcac
     ln -s /etc/php/7.0/mods-available/memcached.ini /etc/php/7.0/apache2/conf.d/20-memcached.ini
 fi
 cd ~
-
+if [[ $ssl = 'y' ]]; then
+	$STOPWEBSERVER
+	if [[ $www = 'y' ]]; then
+		certbot certonly --standalone -d $baseurl -d www.$baseurl -n --agree-tos --email $email --quiet >> ${OUTTO} 2>&1
+	else
+		certbot certonly --standalone -d $baseurl -n --agree-tos --email $email --quiet >> ${OUTTO} 2>&1
+	fi
+	cd ~
+	echo "13 1 * * *certbot renew --renew-hook '/usr/sbin/"$STARTWEBSERVER"' --quiet" >> tempcron
+	echo "13 13 * * * certbot renew --renew-hook '/usr/sbin/"$STARTWEBSERVER"' --quiet" >> tempcron
+	crontab -u root tempcron
+	rm tempcron
+fi
 if [[ $ssl = 'y' ]] && [[ $webserver = 'nginx' ]]; then
     apt-get install -y openssl >> ${OUTTO} 2>&1
-    mkdir -p /etc/nginx/ssl
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/$baseurl.key -out /etc/nginx/ssl/$baseurl.crt -batch >> ${OUTTO} 2>&1
+    ##mkdir -p /etc/nginx/ssl
+    ##openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/$baseurl.key -out /etc/nginx/ssl/$baseurl.crt -batch >> ${OUTTO} 2>&1
     echo "server {
     listen   443;
     ssl on;
-    ssl_certificate /etc/nginx/ssl/$baseurl.crt;
-    ssl_certificate_key /etc/nginx/ssl/$baseurl.key;
+    ssl_certificate /etc/letsencrypt/live/$baseurl/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/$baseurl/privkey.pem;
     server_name $baseurl;
     root /var/www;
     index index.html index.htm index.php;
@@ -313,13 +337,13 @@ if [[ $ssl = 'y' ]] && [[ $webserver = 'nginx' ]]; then
 }" > /etc/nginx/sites-available/$baseurl-ssl
 ln -s /etc/nginx/sites-available/$baseurl-ssl /etc/nginx/sites-enabled
 elif [[ $ssl = 'y' ]] && [[ $webserver = 'apache2' ]]; then
-    apt-get install -y openssl >> ${OUTTO} 2>&1
-    mkdir -p /etc/apache2/ssl
-    openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/apache2/ssl/$baseurl.key -out /etc/apache2/ssl/$baseurl.crt -batch >> ${OUTTO} 2>&1
+    ##apt-get install -y openssl >> ${OUTTO} 2>&1
+    ##mkdir -p /etc/apache2/ssl
+    ##openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/apache2/ssl/$baseurl.key -out /etc/apache2/ssl/$baseurl.crt -batch >> ${OUTTO} 2>&1
     sed -i 's/\/var\/www\/html/\/var\/www/' /etc/apache2/sites-available/default-ssl.conf
-    sed -i 's/\/etc\/ssl\/certs\/ssl-cert-snakeoil.pem/\/etc\/apache2\/ssl\/'$baseurl'.crt/' /etc/apache2/sites-available/default-ssl.conf
-    sed -i 's/\/etc\/ssl\/private\/ssl-cert-snakeoil.key/\/etc\/apache2\/ssl\/'$baseurl'.key/' /etc/apache2/sites-available/default-ssl.conf
-    chmod 600 /etc/apache2/ssl/*
+    sed -i 's/\/etc\/ssl\/certs\/ssl-cert-snakeoil.pem/\/etc\/letsencrypt\/live\/'$baseurl'\/fullchain.pem/' /etc/apache2/sites-available/default-ssl.conf
+    sed -i 's/\/etc\/ssl\/private\/ssl-cert-snakeoil.key/\/etc\/letsencrypt\/live\/'$baseurl'\/privkey.pem/' /etc/apache2/sites-available/default-ssl.conf
+    ##chmod 600 /etc/apache2/ssl/*
     a2enmod ssl >> ${OUTTO} 2>&1
     a2ensite default-ssl >> ${OUTTO} 2>&1
     $STARTWEBSERVER
