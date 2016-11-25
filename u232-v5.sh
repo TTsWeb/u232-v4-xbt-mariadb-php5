@@ -24,7 +24,7 @@ httpsannouncebase='https:\/\/'
 announce2='\/announce.php'
 xbt='xbt'
 function randomString {
-        local myStrLength=32;
+        local myStrLength=16;
         local mySeedNumber=$$`date +%N`;
         local myRandomString=$( echo $mySeedNumber | md5sum | md5sum );
         myRandomResult="${myRandomString:2:myStrLength}"
@@ -55,7 +55,7 @@ spinner() {
 randomString;
 pass=$myRandomResult
 randomString;
-pmakey=$myRandomResult
+pmakey=$(echo -n $myRandomResult | sha1sum | awk '{print $1}')
 randomString;
 mysqlroot=$myRandomResult
 clear
