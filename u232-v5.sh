@@ -188,10 +188,10 @@ updatedb
 
 function _phpmyadmin() {
 cd ~
-wget https://files.phpmyadmin.net/phpMyAdmin/4.6.5.1/phpMyAdmin-4.6.5.1-english.tar.gz >>"${OUTTO}" 2>&1
-tar xfz phpMyAdmin-4.6.5.1-english.tar.gz
-rm phpMyAdmin-4.6.5.1-english.tar.gz
-mv phpMyAdmin-4.6.5.1-english /var/pma/
+wget https://files.phpmyadmin.net/phpMyAdmin/4.6.5.2/phpMyAdmin-4.6.5.2-english.tar.gz >>"${OUTTO}" 2>&1
+tar xfz phpMyAdmin-4.6.5.2-english.tar.gz
+rm phpMyAdmin-4.6.5.2-english.tar.gz
+mv phpMyAdmin-4.6.5.2-english /var/pma/
 cd /var/pma/
 cp config.sample.inc.php config.inc.php
 sed -i "s/\$cfg\["\'"blowfish_secret"\'"\] \= "\'\'"\;/\$cfg\["\'"blowfish_secret"\'"\] \= "\'""$pmakey""\'"\;/" config.inc.php
