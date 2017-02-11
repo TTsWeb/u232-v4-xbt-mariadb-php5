@@ -1,7 +1,7 @@
 #!/bin/bash
 if [[ $EUID != 0 ]]; then
-  echo "This script must be run as root" 1>&2
-  exit 1
+    echo "This script must be run as root" 1>&2
+    exit 1
 fi
 black=$(tput setaf 0); red=$(tput setaf 1); green=$(tput setaf 2); yellow=$(tput setaf 3);
 blue=$(tput setaf 4); magenta=$(tput setaf 5); cyan=$(tput setaf 6); white=$(tput setaf 7);
@@ -24,16 +24,16 @@ httpsannouncebase='https:\/\/'
 announce2='\/announce.php'
 xbt='xbt'
 function randomString {
-        local myStrLength=16;
-        local mySeedNumber=$$`date +%N`;
-        local myRandomString=$( echo $mySeedNumber | md5sum | md5sum );
-        myRandomResult="${myRandomString:2:myStrLength}"
+    local myStrLength=16;
+    local mySeedNumber=$$`date +%N`;
+    local myRandomString=$( echo $mySeedNumber | md5sum | md5sum );
+    myRandomResult="${myRandomString:2:myStrLength}"
 }
 
 function _depends() {
-apt-get -y update >>"${OUTTO}" 2>&1
-##apt-get -y upgrade >>"${OUTTO}" 2>&1
-apt-get -y install lsb-release >>"${OUTTO}" 2>&1
+    apt-get -y update >>"${OUTTO}" 2>&1
+    ##apt-get -y upgrade >>"${OUTTO}" 2>&1
+    apt-get -y install lsb-release >>"${OUTTO}" 2>&1
 }
 
 spinner() {
@@ -72,14 +72,14 @@ This will install a certificate from letsencrypt.org
 This requires the domain(s) to be pointed to this server already: "
 read ssl
 if [[ $ssl = 'y' ]]; then
-	echo -n "Do you need the certificate to include www.$baseurl (y/n)"
-	read www
+    echo -n "Do you need the certificate to include www.$baseurl (y/n): "
+    read www
 fi
 echo -n "Do you want to install apache2 or nginx (apache2/nginx): "
 read webserver
-echo -n "Do you want to run XBT tracker or php? (xbt/php) "
+echo -n "Do you want to run XBT tracker or php? (xbt/php): "
 read xbt
-echo -n "Do you want to set your own mysql root password? (y/n) "
+echo -n "Do you want to set your own mysql root password? (y/n): "
 read sqlrootyn
 case $sqlrootyn in
     'y' )
@@ -95,7 +95,7 @@ case $sqlrootyn in
         else
             mysqlroot=$mysqlroot2
         fi
-        ;;
+    ;;
 esac
 announce=$announcebase$baseurl$announce2
 httpsannounce=$httpsannouncebase$baseurl$announce2
@@ -107,35 +107,27 @@ echo -n "Installing First Dependancies ... ";_depends & spinner $!;echo
 codename=$(lsb_release -cs)
 
 case $codename in
-	"jessie")
-        ;;
+    "jessie")
+    ;;
     *)
         echo `tput setaf 1``tput bold`"This OS is not yet supported! (EXITING)"`tput sgr0`
         echo
         exit 1
-        ;;
+    ;;
 esac
 case $xbt in
     'xbt')
-		extras='libmariadbclient-dev libpcre3 libpcre3-dev cmake g++ libboost-date-time-dev libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev make subversion zlib1g-dev'
-		announce=$announcebase$baseurl
-        ;;
+        extras='libmariadbclient-dev libpcre3 libpcre3-dev cmake g++ libboost-date-time-dev libboost-dev libboost-filesystem-dev libboost-program-options-dev libboost-regex-dev libboost-serialization-dev make subversion zlib1g-dev'
+        announce=$announcebase$baseurl
+    ;;
     'php')
-        ;;
+    ;;
     *)
         echo`tput setaf 1``tput bold`"You did not enter a valid tracker type (EXITING)"`tput sgr0`
         echo
         exit 1
-        ;;
+    ;;
 esac
-function _installsoftware() {
-apt-get -y install software-properties-common >>"${OUTTO}" 2>&1
-apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db >>"${OUTTO}" 2>&1
-wget https://www.dotdeb.org/dotdeb.gpg >>"${OUTTO}" 2>&1
-apt-key add dotdeb.gpg >>"${OUTTO}" 2>&1
-rm dotdeb.gpg
-add-apt-repository "deb http://packages.dotdeb.org jessie all" >>"${OUTTO}" 2>&1
-add-apt-repository "deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian jessie main" >>"${OUTTO}" 2>&1
 if [[ $webserver = 'nginx' ]]; then
     STARTWEBSERVER='service nginx restart'
     STOPWEBSERVER='service nginx stop'
@@ -146,22 +138,33 @@ elif [[ $webserver = 'apache2' ]]; then
     webpackages='libapache2-mod-php7.0 apache2'
 fi
 
-apt-get -y update >>"${OUTTO}" 2>&1
-export DEBIAN_FRONTEND=noninteractive
-echo mariadb-server-10.1 mariadb-server/root_password password $mysqlroot | debconf-set-selections
-echo mariadb-server-10.1 mariadb-server/root_password_again password $mysqlroot | debconf-set-selections
-echo mariadb-server-10.1 mysql-server/root_password password $mysqlroot | debconf-set-selections
-echo mariadb-server-10.1 mysql-server/root_password_again password $mysqlroot | debconf-set-selections
-apt-get -y purge exim4* >>"${OUTTO}" 2>&1
-apt-get -y install mariadb-server memcached unzip libssl-dev php7.0 php7.0-curl php7.0-igbinary php7.0-json php7.0-memcached php7.0-msgpack php-mbstring php7.0-gd php7.0-geoip php7.0-opcache php7.0-xml php7.0-zip php7.0-mcrypt php7.0-mysql sendmail sendmail-bin expect locate $webpackages $extras >>"${OUTTO}" 2>&1
-if [[ $ssl == 'y' ]]; then
-	add-apt-repository "deb http://ftp.debian.org/debian jessie-backports main" >>"${OUTTO}" 2>&1
-	apt-get -y update >>"${OUTTO}" 2>&1
-	apt-get -y install python-certbot-apache certbot -t jessie-backports >>"${OUTTO}" 2>&1
-fi
+function _installsoftware() {
+    apt-get -y install software-properties-common apt-transport-https >>"${OUTTO}" 2>&1
+    apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xcbcb082a1bb943db >>"${OUTTO}" 2>&1
+    wget https://www.dotdeb.org/dotdeb.gpg >>"${OUTTO}" 2>&1
+    apt-key add dotdeb.gpg >>"${OUTTO}" 2>&1
+    wget https://packages.sury.org/php/apt.gpg >>"${OUTTO}" 2>&1
+    apt-key add apt.gpg >>"${OUTTO}" 2>&1
+    add-apt-repository "deb https://packages.sury.org/php/ jessie main"
+    rm dotdeb.gpg apt.gpg
+    add-apt-repository "deb http://packages.dotdeb.org jessie all" >>"${OUTTO}" 2>&1
+    add-apt-repository "deb [arch=amd64,i386] http://nyc2.mirrors.digitalocean.com/mariadb/repo/10.1/debian jessie main" >>"${OUTTO}" 2>&1
+    apt-get -y update >>"${OUTTO}" 2>&1
+    export DEBIAN_FRONTEND=noninteractive
+    echo mariadb-server-10.1 mariadb-server/root_password password $mysqlroot | debconf-set-selections
+    echo mariadb-server-10.1 mariadb-server/root_password_again password $mysqlroot | debconf-set-selections
+    echo mariadb-server-10.1 mysql-server/root_password password $mysqlroot | debconf-set-selections
+    echo mariadb-server-10.1 mysql-server/root_password_again password $mysqlroot | debconf-set-selections
+    apt-get -y purge exim4* >>"${OUTTO}" 2>&1
+    apt-get -y install mariadb-server memcached unzip libssl-dev php7.0 php7.0-curl php7.0-igbinary php7.0-json php7.0-memcached php7.0-msgpack php-mbstring php7.0-gd php7.0-geoip php7.0-opcache php7.0-xml php7.0-zip php7.0-mcrypt php7.0-mysql sendmail sendmail-bin expect locate $webpackages $extras >>"${OUTTO}" 2>&1
+    if [[ $ssl == 'y' ]]; then
+        add-apt-repository "deb http://ftp.debian.org/debian jessie-backports main" >>"${OUTTO}" 2>&1
+        apt-get -y update >>"${OUTTO}" 2>&1
+        apt-get -y install python-certbot-apache certbot -t jessie-backports >>"${OUTTO}" 2>&1
+    fi
 }
 function _securemysql() {
-SECURE_MYSQL=$(expect -c "
+    SECURE_MYSQL=$(expect -c "
 set timeout 10
 spawn mysql_secure_installation
 expect \"Enter current password for root (enter for none):\"
@@ -177,9 +180,9 @@ send \"y\r\"
 expect \"Reload privilege tables now?\"
 send \"y\r\"
 expect eof
-")
-
-echo "$SECURE_MYSQL" >>"${OUTTO}" 2>&1
+    ")
+    
+    echo "$SECURE_MYSQL" >>"${OUTTO}" 2>&1
 }
 echo -n "Installing Webserver and MariaDB ... ";_installsoftware & spinner $!;echo
 echo -n "Securing MariaDB ... ";_securemysql & spinner $!;echo
@@ -187,30 +190,30 @@ echo -n "Securing MariaDB ... ";_securemysql & spinner $!;echo
 updatedb
 
 function _phpmyadmin() {
-cd ~
-wget https://files.phpmyadmin.net/phpMyAdmin/4.6.5.2/phpMyAdmin-4.6.5.2-english.tar.gz >>"${OUTTO}" 2>&1
-tar xfz phpMyAdmin-4.6.5.2-english.tar.gz
-rm phpMyAdmin-4.6.5.2-english.tar.gz
-mv phpMyAdmin-4.6.5.2-english /var/pma/
-cd /var/pma/
-cp config.sample.inc.php config.inc.php
-sed -i "s/\$cfg\["\'"blowfish_secret"\'"\] \= "\'\'"\;/\$cfg\["\'"blowfish_secret"\'"\] \= "\'""$pmakey""\'"\;/" config.inc.php
+    cd ~
+    wget https://files.phpmyadmin.net/phpMyAdmin/4.6.5.2/phpMyAdmin-4.6.5.2-english.tar.gz >>"${OUTTO}" 2>&1
+    tar xfz phpMyAdmin-4.6.5.2-english.tar.gz
+    rm phpMyAdmin-4.6.5.2-english.tar.gz
+    mv phpMyAdmin-4.6.5.2-english /var/pma/
+    cd /var/pma/
+    cp config.sample.inc.php config.inc.php
+    sed -i "s/\$cfg\["\'"blowfish_secret"\'"\] \= "\'\'"\;/\$cfg\["\'"blowfish_secret"\'"\] \= "\'""$pmakey""\'"\;/" config.inc.php
 }
 echo -n "Installing phpMyAdmin ... ";_phpmyadmin & spinner $!;echo
 function _webconfig() {
     if [[ $webserver = 'nginx' ]]; then
-    cd /etc/nginx/sites-enabled
-    sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/' /etc/php/7.0/fpm/php.ini
-    sed -i "s/user = www-data/user = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
-    sed -i "s/group = www-data/group = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
-    sed -i "s/;listen\.owner.*/listen.owner = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
-    sed -i "s/;listen\.group.*/listen.group = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
-    sed -i "s/;listen\.mode.*/listen.mode = 0660/" /etc/php/7.0/fpm/pool.d/www.conf # This passage in not required normally
-    echo "memcached.serializer = 'php'" >> /etc/php/7.0/fpm/php.ini
-    rm default*
-    cd ../sites-available
-    rm default*
-    echo "server {
+        cd /etc/nginx/sites-enabled
+        sed -i 's/;cgi.fix_pathinfo=1/cgi.fix_pathinfo=0/' /etc/php/7.0/fpm/php.ini
+        sed -i "s/user = www-data/user = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
+        sed -i "s/group = www-data/group = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
+        sed -i "s/;listen\.owner.*/listen.owner = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
+        sed -i "s/;listen\.group.*/listen.group = www-data/" /etc/php/7.0/fpm/pool.d/www.conf
+        sed -i "s/;listen\.mode.*/listen.mode = 0660/" /etc/php/7.0/fpm/pool.d/www.conf # This passage in not required normally
+        echo "memcached.serializer = 'php'" >> /etc/php/7.0/fpm/php.ini
+        rm default*
+        cd ../sites-available
+        rm default*
+        echo "server {
     listen 80 default_server;
 
     root /var/www;
@@ -246,57 +249,60 @@ function _webconfig() {
             root /var;
         }
     }
-}" > /etc/nginx/sites-available/default
-    ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled
-    $STARTWEBSERVER
-    $STARTPHPFPM
-elif [[ $webserver = 'apache2' ]]; then
-    cd /etc/apache2/sites-enabled
-    sed -i 's/\/var\/www\/html/\/var\/www/' 000-default*
-    echo "memcached.serializer = 'php'" >> /etc/php/7.0/apache2/php.ini
-    echo "<Directory /var/pma>
+        }" > /etc/nginx/sites-available/default
+        ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled
+        $STARTWEBSERVER
+        $STARTPHPFPM
+    elif [[ $webserver = 'apache2' ]]; then
+        cd /etc/apache2/sites-enabled
+        sed -i 's/\/var\/www\/html/\/var\/www/' 000-default*
+        echo "memcached.serializer = 'php'" >> /etc/php/7.0/apache2/php.ini
+        echo "<Directory /var/pma>
     Options FollowSymLinks
     AllowOverride None
     Require all granted
 </Directory>
-Alias /pma /var/pma" >> /etc/apache2/apache2.conf
-    $STARTWEBSERVER
-fi
-cd ~
-if [ ! -f /etc/php/7.0/mods-available/memcached.ini ]; then
-echo "; configuration for php memcached module
+        Alias /pma /var/pma" >> /etc/apache2/apache2.conf
+        $STARTWEBSERVER
+    fi
+    cd ~
+    if [ ! -f /etc/php/7.0/mods-available/memcached.ini ]; then
+        echo "; configuration for php memcached module
 ; priority=20
-extension=memcached.so" > /etc/php/7.0/mods-available/memcached.ini
-fi
-if [ ! -f /etc/php/7.0/cli/conf.d/20-memcached.ini ]; then
-ln -s /etc/php/7.0/mods-available/memcached.ini /etc/php/7.0/cli/conf.d/20-memcached.ini
-fi
-if [ ! -f /etc/php/7.0/fpm/conf.d/20-memcached.ini ] && [[ $webserver = 'nginx' ]]; then
-ln -s /etc/php/7.0/mods-available/memcached.ini /etc/php/7.0/fpm/conf.d/20-memcached.ini
-$STARTPHPFPM
-fi
-if [[ $webserver = 'apache2' ]] && [[ ! -f /etc/php/7.0/apache2/conf.d/20-memcached.ini ]]; then
-    ln -s /etc/php/7.0/mods-available/memcached.ini /etc/php/7.0/apache2/conf.d/20-memcached.ini
-fi
-cd ~
-if [[ $ssl = 'y' ]]; then
-	$STOPWEBSERVER
-	if [[ $www = 'y' ]]; then
-		certbot certonly --standalone -d $baseurl -d www.$baseurl -n --agree-tos --email $email --quiet >> ${OUTTO} 2>&1
-	else
-		certbot certonly --standalone -d $baseurl -n --agree-tos --email $email --quiet >> ${OUTTO} 2>&1
-	fi
-	cd ~
-	echo "13 1 * * *certbot renew --renew-hook '/usr/sbin/"$STARTWEBSERVER"' --quiet" >> tempcron
-	echo "13 13 * * * certbot renew --renew-hook '/usr/sbin/"$STARTWEBSERVER"' --quiet" >> tempcron
-	crontab -u root tempcron
-	rm tempcron
-fi
-if [[ $ssl = 'y' ]] && [[ $webserver = 'nginx' ]]; then
-    apt-get install -y openssl >> ${OUTTO} 2>&1
-    ##mkdir -p /etc/nginx/ssl
-    ##openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/$baseurl.key -out /etc/nginx/ssl/$baseurl.crt -batch >> ${OUTTO} 2>&1
-    echo "server {
+        extension=memcached.so" > /etc/php/7.0/mods-available/memcached.ini
+    fi
+    if [ ! -f /etc/php/7.0/cli/conf.d/20-memcached.ini ]; then
+        ln -s /etc/php/7.0/mods-available/memcached.ini /etc/php/7.0/cli/conf.d/20-memcached.ini
+    fi
+    if [ ! -f /etc/php/7.0/fpm/conf.d/20-memcached.ini ] && [[ $webserver = 'nginx' ]]; then
+        ln -s /etc/php/7.0/mods-available/memcached.ini /etc/php/7.0/fpm/conf.d/20-memcached.ini
+        $STARTPHPFPM
+    fi
+    if [[ $webserver = 'apache2' ]] && [[ ! -f /etc/php/7.0/apache2/conf.d/20-memcached.ini ]]; then
+        ln -s /etc/php/7.0/mods-available/memcached.ini /etc/php/7.0/apache2/conf.d/20-memcached.ini
+    fi
+    cd ~
+    if [[ $ssl = 'y' ]]; then
+        $STARTWEBSERVER
+        if [[ $www = 'y' ]]; then
+            certbot certonly --webroot -w /var/www -d $baseurl -w /var/www -d www.$baseurl -n --agree-tos --email $email --quiet >> ${OUTTO} 2>&1
+        else
+            certbot certonly --webroot -w /var/www -d $baseurl -n --agree-tos --email $email --quiet >> ${OUTTO} 2>&1
+        fi
+        if [[ -f /etc/letsencrypt/live/$baseurl/fullchain.pem ]]; then
+            $ssl = 'n'
+            cd ~
+            echo "13 1 * * * certbot renew --renew-hook '/usr/sbin/$STARTWEBSERVER' --quiet" >> tempcron
+            echo "13 13 * * * certbot renew --renew-hook '/usr/sbin/$STARTWEBSERVER' --quiet" >> tempcron
+            crontab -u root tempcron
+            rm tempcron
+        fi
+    fi
+    if [[ $ssl = 'y' ]] && [[ $webserver = 'nginx' ]]; then
+        apt-get install -y openssl >> ${OUTTO} 2>&1
+        ##mkdir -p /etc/nginx/ssl
+        ##openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/nginx/ssl/$baseurl.key -out /etc/nginx/ssl/$baseurl.crt -batch >> ${OUTTO} 2>&1
+        echo "server {
     listen   443;
     ssl on;
     ssl_certificate /etc/letsencrypt/live/$baseurl/fullchain.pem;
@@ -335,20 +341,20 @@ if [[ $ssl = 'y' ]] && [[ $webserver = 'nginx' ]]; then
             root /var;
         }
     }
-}" > /etc/nginx/sites-available/$baseurl-ssl
-ln -s /etc/nginx/sites-available/$baseurl-ssl /etc/nginx/sites-enabled
-elif [[ $ssl = 'y' ]] && [[ $webserver = 'apache2' ]]; then
-    ##apt-get install -y openssl >> ${OUTTO} 2>&1
-    ##mkdir -p /etc/apache2/ssl
-    ##openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/apache2/ssl/$baseurl.key -out /etc/apache2/ssl/$baseurl.crt -batch >> ${OUTTO} 2>&1
-    sed -i 's/\/var\/www\/html/\/var\/www/' /etc/apache2/sites-available/default-ssl.conf
-    sed -i 's/\/etc\/ssl\/certs\/ssl-cert-snakeoil.pem/\/etc\/letsencrypt\/live\/'$baseurl'\/fullchain.pem/' /etc/apache2/sites-available/default-ssl.conf
-    sed -i 's/\/etc\/ssl\/private\/ssl-cert-snakeoil.key/\/etc\/letsencrypt\/live\/'$baseurl'\/privkey.pem/' /etc/apache2/sites-available/default-ssl.conf
-    ##chmod 600 /etc/apache2/ssl/*
-    a2enmod ssl >> ${OUTTO} 2>&1
-    a2ensite default-ssl >> ${OUTTO} 2>&1
-    $STARTWEBSERVER
-fi
+        }" > /etc/nginx/sites-available/$baseurl-ssl
+        ln -s /etc/nginx/sites-available/$baseurl-ssl /etc/nginx/sites-enabled
+    elif [[ $ssl = 'y' ]] && [[ $webserver = 'apache2' ]]; then
+        ##apt-get install -y openssl >> ${OUTTO} 2>&1
+        ##mkdir -p /etc/apache2/ssl
+        ##openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /etc/apache2/ssl/$baseurl.key -out /etc/apache2/ssl/$baseurl.crt -batch >> ${OUTTO} 2>&1
+        sed -i 's/\/var\/www\/html/\/var\/www/' /etc/apache2/sites-available/default-ssl.conf
+        sed -i 's/\/etc\/ssl\/certs\/ssl-cert-snakeoil.pem/\/etc\/letsencrypt\/live\/'$baseurl'\/fullchain.pem/' /etc/apache2/sites-available/default-ssl.conf
+        sed -i 's/\/etc\/ssl\/private\/ssl-cert-snakeoil.key/\/etc\/letsencrypt\/live\/'$baseurl'\/privkey.pem/' /etc/apache2/sites-available/default-ssl.conf
+        ##chmod 600 /etc/apache2/ssl/*
+        a2enmod ssl >> ${OUTTO} 2>&1
+        a2ensite default-ssl >> ${OUTTO} 2>&1
+        $STARTWEBSERVER
+    fi
 }
 echo -n "Configuring the webserver ... ";_webconfig & spinner $!;echo
 cd ~
@@ -359,70 +365,70 @@ rm blah.sql
 
 
 function _v5files() {
-wget https://github.com/Bigjoos/U-232-V5/archive/master.tar.gz >> ${OUTTO} 2>&1
-tar xfz master.tar.gz
-cd U-232-V5-master
-tar xfz pic.tar.gz
-tar xfz GeoIP.tar.gz
-tar xfz Log_Viewer.tar.gz
-cd /var
-mkdir -p /var/bucket/avatar
-cd /var/bucket
-cp ~/U-232-V5-master/torrents/.htaccess .
-cp ~/U-232-V5-master/torrents/index.* .
-cd /var/bucket/avatar
-cp ~/U-232-V5-master/torrents/.htaccess .
-cp ~/U-232-V5-master/torrents/index.* .
-cd ~
-chmod -R 755 /var/bucket
-cp -ar ~/U-232-V5-master/* /var/www
-if [ ! -d /var/www/imdb/images ]; then
-    mkdir /var/www/imdb/images
-fi
-if [ ! -d /var/www/imdb/cache ]; then
-    mkdir /var/www/imdb/cache
-fi
-chmod -R 755 /var/www/cache
-chmod 755 /var/www/dir_list
-chmod 755 /var/www/uploads
-chmod 755 /var/www/uploadsub
-chmod 755 /var/www/imdb
-chmod 755 /var/www/imdb/cache
-chmod 755 /var/www/imdb/images
-chmod 755 /var/www/include
-chmod 755 /var/www/include/backup
-chmod 755 /var/www/include/settings
-echo > /var/www/include/settings/settings.txt
-chmod 755 /var/www/include/settings/settings.txt
-chmod 755 /var/www/sqlerr_logs/
-chmod 755 /var/www/torrents
-configfile='/var/www/install/extra/config.'$xbt'sample.php'
-sed 's/#mysql_user/'$user'/' $configfile > /var/www/include/config.php
-sed -i 's/#mysql_pass/'$pass'/' /var/www/include/config.php
-sed -i 's/#mysql_db/'$db'/' /var/www/include/config.php
-sed -i 's/#mysql_host/'$dbhost'/' /var/www/include/config.php
-sed -i 's/#cookie_prefix/'$blank'/' /var/www/include/config.php
-sed -i 's/#cookie_path/'$blank'/' /var/www/include/config.php
-sed -i 's/#cookie_domain/'$blank'/' /var/www/include/config.php
-sed -i 's/#domain/'$blank'/' /var/www/include/config.php
-sed -i 's/#announce_urls/'$announce'/' /var/www/include/config.php
-sed -i 's/#announce_https/'$httpsannounce'/' /var/www/include/config.php
-sed -i 's/#site_email/'$email'/' /var/www/include/config.php
-sed -i 's/#site_name/'"$name"'/' /var/www/include/config.php
-annconfigfile='/var/www/install/extra/ann_config.'$xbt'sample.php'
-sed 's/#mysql_user/'$user'/' $annconfigfile > /var/www/include/ann_config.php
-sed -i 's/#mysql_pass/'$pass'/' /var/www/include/ann_config.php
-sed -i 's/#mysql_db/'$db'/' /var/www/include/ann_config.php
-sed -i 's/#mysql_host/'$dbhost'/' /var/www/include/ann_config.php
-sed -i 's/#baseurl/'$baseurl'/' /var/www/include/ann_config.php
-mysqlfile='/var/www/install/extra/install.'$xbt'.sql'
-mysql -u $user -p$pass $db < $mysqlfile
-mv /var/www/install /var/www/.install
-if [[ -f /var/www/index.html ]]; then
-    rm /var/www/index.html
-fi
-chown -R www-data:www-data /var/www
-chown -R www-data:www-data /var/bucket
+    wget https://github.com/Bigjoos/U-232-V5/archive/master.tar.gz >> ${OUTTO} 2>&1
+    tar xfz master.tar.gz
+    cd U-232-V5-master
+    tar xfz pic.tar.gz
+    tar xfz GeoIP.tar.gz
+    tar xfz Log_Viewer.tar.gz
+    cd /var
+    mkdir -p /var/bucket/avatar
+    cd /var/bucket
+    cp ~/U-232-V5-master/torrents/.htaccess .
+    cp ~/U-232-V5-master/torrents/index.* .
+    cd /var/bucket/avatar
+    cp ~/U-232-V5-master/torrents/.htaccess .
+    cp ~/U-232-V5-master/torrents/index.* .
+    cd ~
+    chmod -R 755 /var/bucket
+    cp -ar ~/U-232-V5-master/* /var/www
+    if [ ! -d /var/www/imdb/images ]; then
+        mkdir /var/www/imdb/images
+    fi
+    if [ ! -d /var/www/imdb/cache ]; then
+        mkdir /var/www/imdb/cache
+    fi
+    chmod -R 755 /var/www/cache
+    chmod 755 /var/www/dir_list
+    chmod 755 /var/www/uploads
+    chmod 755 /var/www/uploadsub
+    chmod 755 /var/www/imdb
+    chmod 755 /var/www/imdb/cache
+    chmod 755 /var/www/imdb/images
+    chmod 755 /var/www/include
+    chmod 755 /var/www/include/backup
+    chmod 755 /var/www/include/settings
+    echo > /var/www/include/settings/settings.txt
+    chmod 755 /var/www/include/settings/settings.txt
+    chmod 755 /var/www/sqlerr_logs/
+    chmod 755 /var/www/torrents
+    configfile='/var/www/install/extra/config.'$xbt'sample.php'
+    sed 's/#mysql_user/'$user'/' $configfile > /var/www/include/config.php
+    sed -i 's/#mysql_pass/'$pass'/' /var/www/include/config.php
+    sed -i 's/#mysql_db/'$db'/' /var/www/include/config.php
+    sed -i 's/#mysql_host/'$dbhost'/' /var/www/include/config.php
+    sed -i 's/#cookie_prefix/'$blank'/' /var/www/include/config.php
+    sed -i 's/#cookie_path/'$blank'/' /var/www/include/config.php
+    sed -i 's/#cookie_domain/'$blank'/' /var/www/include/config.php
+    sed -i 's/#domain/'$blank'/' /var/www/include/config.php
+    sed -i 's/#announce_urls/'$announce'/' /var/www/include/config.php
+    sed -i 's/#announce_https/'$httpsannounce'/' /var/www/include/config.php
+    sed -i 's/#site_email/'$email'/' /var/www/include/config.php
+    sed -i 's/#site_name/'"$name"'/' /var/www/include/config.php
+    annconfigfile='/var/www/install/extra/ann_config.'$xbt'sample.php'
+    sed 's/#mysql_user/'$user'/' $annconfigfile > /var/www/include/ann_config.php
+    sed -i 's/#mysql_pass/'$pass'/' /var/www/include/ann_config.php
+    sed -i 's/#mysql_db/'$db'/' /var/www/include/ann_config.php
+    sed -i 's/#mysql_host/'$dbhost'/' /var/www/include/ann_config.php
+    sed -i 's/#baseurl/'$baseurl'/' /var/www/include/ann_config.php
+    mysqlfile='/var/www/install/extra/install.'$xbt'.sql'
+    mysql -u $user -p$pass $db < $mysqlfile
+    mv /var/www/install /var/www/.install
+    if [[ -f /var/www/index.html ]]; then
+        rm /var/www/index.html
+    fi
+    chown -R www-data:www-data /var/www
+    chown -R www-data:www-data /var/bucket
 }
 echo -n "Installing U-232 V5 ... ";_v5files & spinner $!;echo
 
@@ -442,9 +448,9 @@ function _xbtinstall() {
     ./xbt_tracker
 }
 if [[ $xbt = 'xbt' ]]; then
-	echo -n "Installing XBT ... ";_xbtinstall & spinner $!;echo
+    echo -n "Installing XBT ... ";_xbtinstall & spinner $!;echo
     SERVICE='xbt_tracker'
-     if  ps ax | grep -v grep | grep $SERVICE > /dev/null
+    if  ps ax | grep -v grep | grep $SERVICE > /dev/null
     then
         echo "$SERVICE service running, everything is fine"
     else
@@ -452,11 +458,11 @@ if [[ $xbt = 'xbt' ]]; then
         checkxbt="ps ax | grep -v grep | grep -c $SERVICE"
         if [ $checkxbt <= 0 ]
         then
-        cd /root/xbt/Tracker
-        $STARTXBT
+            cd /root/xbt/Tracker
+            $STARTXBT
             if ps ax | grep -v grep | grep $SERVICE >/dev/null
-        then
-            echo "$SERVICE service is now restarted, everything is fine"
+            then
+                echo "$SERVICE service is now restarted, everything is fine"
             fi
         fi
     fi
@@ -464,66 +470,71 @@ fi
 ######CHECK MEMCACHED######
 SERVICE='memcached'
 
- if  ps ax | grep -v grep | grep $SERVICE > /dev/null
+if  ps ax | grep -v grep | grep $SERVICE > /dev/null
 then
     echo "$SERVICE service running, everything is fine"
 else
-    echo "$SERVICE is not running, restarting $SERVICE" 
+    echo "$SERVICE is not running, restarting $SERVICE"
     chkmem="ps ax | grep -v grep | grep -c $SERVICE"
     if [ $chkmem <= 0 ]
     then
-    $STARTMEMCACHED
+        $STARTMEMCACHED
         if ps ax | grep -v grep | grep $SERVICE >/dev/null
-    then
-        echo "$SERVICE service is now restarted, everything is fine"
+        then
+            echo "$SERVICE service is now restarted, everything is fine"
         fi
     fi
 fi
 ######CHECK nginx######
 if [[ $webserver = 'nginx' ]]; then
-	SERVICE='nginx'
+    SERVICE='nginx'
 fi
 if [[ $webserver = 'apache2' ]]; then
-	SERVICE='apache2'
+    SERVICE='apache2'
 fi
 
 if  ps ax | grep -v grep | grep $SERVICE > /dev/null
 then
     echo "$SERVICE service running, everything is fine"
 else
-    echo "$SERVICE is not running, restarting $SERVICE" 
+    echo "$SERVICE is not running, restarting $SERVICE"
     chkmem="ps ax | grep -v grep | grep -c $SERVICE"
     if [ $chkmem <= 0 ]
     then
-    $STARTWEBSERVER
+        $STARTWEBSERVER
         if ps ax | grep -v grep | grep $SERVICE >/dev/null
-    then
-        echo "$SERVICE service is now restarted, everything is fine"
+        then
+            echo "$SERVICE service is now restarted, everything is fine"
         fi
     fi
 fi
 if [[ $webserver = 'nginx' ]]; then
-	######CHECK php-fpm######
-	SERVICE='php-fpm'
-
-	if  ps ax | grep -v grep | grep $SERVICE > /dev/null
-	then
-	    echo "$SERVICE service running, everything is fine"
-	else
-	    echo "$SERVICE is not running, restarting $SERVICE" 
-	    chkmem="ps ax | grep -v grep | grep -c $SERVICE"
-	    if [ $chkmem <= 0 ]
-	    then
-	    $STARTPHPFPM
-	        if ps ax | grep -v grep | grep $SERVICE >/dev/null
-	    then
-	        echo "$SERVICE service is now restarted, everything is fine"
-	        fi
-	    fi
-	fi
+    ######CHECK php-fpm######
+    SERVICE='php-fpm'
+    
+    if  ps ax | grep -v grep | grep $SERVICE > /dev/null
+    then
+        echo "$SERVICE service running, everything is fine"
+    else
+        echo "$SERVICE is not running, restarting $SERVICE"
+        chkmem="ps ax | grep -v grep | grep -c $SERVICE"
+        if [ $chkmem <= 0 ]
+        then
+            $STARTPHPFPM
+            if ps ax | grep -v grep | grep $SERVICE >/dev/null
+            then
+                echo "$SERVICE service is now restarted, everything is fine"
+            fi
+        fi
+    fi
 fi
 echo "The site should now be accessable at http://$baseurl"
 echo "phpMyAdmin is accessable at http://$baseurl/pma"
 if [[ $ssl = 'y' ]]; then
-	echo "Also at https://$baseurl and https://$baseurl/pma"
+    if [[ -f /etc/letsencrypt/live/$baseurl/fullchain.pem ]]; then
+        echo "Installation of the SSL certificate failed."
+        echo "Check out the letsencrypt error logs in /var/log/letsencrypt/"
+    else
+        echo "Also at https://$baseurl and https://$baseurl/pma"
+    fi
 fi
